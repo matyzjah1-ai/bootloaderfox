@@ -1,0 +1,906 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BootloaderFox — GRUB, but sharper</title>
+  <style>
+    :root {
+      --bg: #0f0b08;
+      --bg-soft: #17110d;
+      --panel: rgba(26, 18, 12, 0.88);
+      --panel-strong: rgba(34, 22, 14, 0.96);
+      --line: rgba(255, 150, 58, 0.16);
+      --line-strong: rgba(255, 150, 58, 0.28);
+      --text: #f7eee6;
+      --muted: #d6b8a0;
+      --soft: #a88a73;
+      --accent: #ff8a1f;
+      --accent-2: #ffb14a;
+      --accent-dark: #a9520d;
+      --success: #ffcf8b;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.38);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --container: 1180px;
+    }* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255, 138, 31, 0.12), transparent 28%),
+    radial-gradient(circle at 85% 12%, rgba(255, 177, 74, 0.08), transparent 20%),
+    linear-gradient(180deg, #110c09 0%, #0d0907 100%);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
+  opacity: 0.28;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container {
+  width: min(var(--container), calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(14px);
+  background: rgba(12, 8, 5, 0.72);
+  border-bottom: 1px solid rgba(255, 146, 43, 0.08);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: #fff2e8;
+  background: linear-gradient(135deg, var(--accent), #ff6b00);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 25px rgba(255, 116, 15, 0.24);
+  font-size: 1.1rem;
+}
+
+.brand small {
+  display: block;
+  color: var(--soft);
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nav-links a {
+  color: var(--muted);
+  padding: 10px 14px;
+  border-radius: 999px;
+  transition: 0.24s ease;
+  font-size: 0.95rem;
+}
+
+.nav-links a:hover {
+  color: var(--text);
+  background: rgba(255, 138, 31, 0.08);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  font-weight: 650;
+  transition: transform 0.24s ease, border-color 0.24s ease, background 0.24s ease, box-shadow 0.24s ease;
+  cursor: pointer;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #ff720d);
+  color: #fff6ef;
+  box-shadow: 0 14px 30px rgba(255, 116, 15, 0.18);
+}
+
+.btn-secondary {
+  border-color: var(--line-strong);
+  background: rgba(255, 138, 31, 0.05);
+  color: var(--text);
+}
+
+.hero {
+  padding: 76px 0 32px;
+  position: relative;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 36px;
+  align-items: center;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 138, 31, 0.05);
+  color: var(--success);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  animation: fadeUp 0.7s ease both;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.8rem, 6vw, 5.4rem);
+  line-height: 0.94;
+  letter-spacing: -0.05em;
+  max-width: 11ch;
+  animation: fadeUp 0.8s ease 0.08s both;
+}
+
+.hero h1 span {
+  color: var(--accent-2);
+}
+
+.hero p {
+  color: var(--muted);
+  font-size: 1.08rem;
+  line-height: 1.75;
+  max-width: 60ch;
+  margin: 22px 0 0;
+  animation: fadeUp 0.8s ease 0.16s both;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 28px;
+  animation: fadeUp 0.8s ease 0.24s both;
+}
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 28px;
+  animation: fadeUp 0.8s ease 0.32s both;
+}
+
+.stat {
+  min-width: 150px;
+  padding: 16px 18px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+}
+
+.stat strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+}
+
+.stat span {
+  color: var(--soft);
+  font-size: 0.92rem;
+}
+
+.hero-visual {
+  position: relative;
+  animation: floatIn 1s ease 0.12s both;
+}
+
+.glow-orb {
+  position: absolute;
+  inset: auto 5% -8% auto;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 138, 31, 0.22), transparent 70%);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.preview {
+  position: relative;
+  background: linear-gradient(180deg, rgba(30, 19, 11, 0.95), rgba(16, 10, 6, 0.98));
+  border: 1px solid rgba(255, 146, 43, 0.16);
+  border-radius: 30px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.preview-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.16);
+}
+
+.preview-top span {
+  color: var(--soft);
+  font-size: 0.88rem;
+}
+
+.boot-screen {
+  padding: 26px;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  background:
+    radial-gradient(circle at top right, rgba(255, 153, 51, 0.08), transparent 22%),
+    linear-gradient(180deg, rgba(255,255,255,0.01), transparent),
+    #120c08;
+  min-height: 520px;
+}
+
+.boot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffd7a9;
+  font-size: 0.92rem;
+  margin-bottom: 22px;
+  gap: 12px;
+}
+
+.fox-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 145, 39, 0.16);
+  background: rgba(255, 138, 31, 0.05);
+}
+
+.menu-card {
+  border: 1px solid rgba(255, 146, 43, 0.14);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.menu-title {
+  color: #ffe7cf;
+  font-size: 1.05rem;
+  margin-bottom: 18px;
+}
+
+.menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  color: #f9e7d7;
+  margin-bottom: 12px;
+  border: 1px solid transparent;
+  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+
+.menu-item:hover {
+  transform: translateX(4px);
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.06);
+}
+
+.menu-item.active {
+  background: linear-gradient(90deg, rgba(255, 138, 31, 0.18), rgba(255, 138, 31, 0.05));
+  border-color: rgba(255, 151, 51, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  animation: pulseSelection 2.8s ease-in-out infinite;
+}
+
+.menu-item small {
+  display: block;
+  margin-top: 4px;
+  color: #cda889;
+  font-size: 0.8rem;
+}
+
+.menu-right {
+  color: #ffbe73;
+  font-size: 0.86rem;
+  opacity: 0.92;
+}
+
+.status-row {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.status-box {
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255,255,255,0.018);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.status-box span {
+  display: block;
+  color: var(--soft);
+  font-size: 0.74rem;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.status-box strong {
+  font-size: 0.96rem;
+  color: #ffe9d0;
+}
+
+section {
+  padding: 36px 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.section-head h2 {
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.04;
+  margin: 0;
+  letter-spacing: -0.04em;
+}
+
+.section-head p {
+  color: var(--muted);
+  max-width: 60ch;
+  line-height: 1.75;
+  margin: 0;
+}
+
+.grid-3,
+.grid-4,
+.grid-2 {
+  display: grid;
+  gap: 18px;
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.card {
+  position: relative;
+  padding: 22px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.015));
+  border: 1px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+  transition: transform 0.28s ease, border-color 0.28s ease, background 0.28s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 148, 46, 0.2);
+  background: linear-gradient(180deg, rgba(255,255,255,0.032), rgba(255,255,255,0.02));
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: auto -30% -45% auto;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 138, 31, 0.10), transparent 70%);
+  pointer-events: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 138, 31, 0.06);
+  border: 1px solid rgba(255, 146, 43, 0.12);
+  color: #ffd09d;
+  font-size: 0.82rem;
+}
+
+.card h3 {
+  margin: 0 0 10px;
+  font-size: 1.18rem;
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.72;
+  font-size: 0.98rem;
+}
+
+.code-panel {
+  padding: 24px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(19, 13, 9, 0.98), rgba(11, 8, 5, 1));
+  border: 1px solid rgba(255, 146, 43, 0.12);
+  box-shadow: var(--shadow);
+}
+
+.code-panel pre {
+  margin: 0;
+  overflow: auto;
+  color: #ffe1bf;
+  font-size: 0.93rem;
+  line-height: 1.7;
+  font-family: "JetBrains Mono", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.roadmap-item {
+  padding: 20px;
+  border-left: 2px solid rgba(255, 146, 43, 0.22);
+  background: rgba(255,255,255,0.015);
+  border-radius: 0 18px 18px 0;
+}
+
+.roadmap-item strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 8px;
+  color: #ffe5c7;
+}
+
+.roadmap-item p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.cta {
+  padding: 26px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 146, 43, 0.14);
+  background:
+    radial-gradient(circle at top right, rgba(255, 138, 31, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.cta h3 {
+  margin: 0 0 8px;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  letter-spacing: -0.03em;
+}
+
+.cta p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 58ch;
+  line-height: 1.7;
+}
+
+footer {
+  padding: 24px 0 42px;
+  color: var(--soft);
+  font-size: 0.92rem;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulseSelection {
+  0%, 100% {
+    border-color: rgba(255, 151, 51, 0.24);
+  }
+  50% {
+    border-color: rgba(255, 191, 102, 0.38);
+  }
+}
+
+@media (max-width: 1060px) {
+  .hero-grid,
+  .grid-3,
+  .grid-4,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .hero h1 {
+    max-width: 100%;
+  }
+
+  .status-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cta {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav-links {
+    width: 100%;
+  }
+
+  .nav-links a {
+    padding-left: 0;
+  }
+
+  .hero {
+    padding-top: 46px;
+  }
+
+  .boot-screen,
+  .code-panel,
+  .card,
+  .cta {
+    padding: 18px;
+  }
+
+  .hero-stats {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container nav">
+      <a href="#home" class="brand">
+        <div class="brand-mark">🦊</div>
+        <div>
+          BootloaderFox
+          <small>Boot clean. Boot fast. Boot better.</small>
+        </div>
+      </a><nav class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#config">Config</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#download" class="btn btn-secondary">Preview build</a>
+  </nav>
+</div>
+
+  </header>  <main id="home">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <div class="eyebrow">Orange-first boot experience · GRUB, rethought</div>
+          <h1>Meet <span>BootloaderFox</span></h1>
+          <p>
+            A cleaner, more modern bootloader built for people who want speed, modularity,
+            and a UI that doesn’t feel stuck in another decade. BootloaderFox keeps the low-level power,
+            but gives it sharper visuals, easier configuration, and room to grow.
+          </p><div class="hero-actions">
+        <a class="btn btn-primary" href="#download">Get the concept build</a>
+        <a class="btn btn-secondary" href="#features">See what makes it different</a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat">
+          <strong>Modular core</strong>
+          <span>UI, filesystem, and Linux loading split cleanly.</span>
+        </div>
+        <div class="stat">
+          <strong>Fox Theme</strong>
+          <span>Dark base, orange accents, restrained motion.</span>
+        </div>
+        <div class="stat">
+          <strong>Config-first</strong>
+          <span>Simpler syntax than classic boot menus.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="glow-orb"></div>
+      <div class="preview">
+        <div class="preview-top">
+          <div class="dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <span>/boot/bootloaderfox/ui/fox.theme</span>
+        </div>
+        <div class="boot-screen">
+          <div class="boot-header">
+            <div class="fox-badge">🦊 BootloaderFox v0.1-dev</div>
+            <div>Detected: BIOS · FAT32 · Linux</div>
+          </div>
+
+          <div class="menu-card">
+            <div class="menu-title">Boot selection</div>
+
+            <div class="menu-item active">
+              <div>
+                Arch Linux
+                <small>Default entry · Kernel 6.13.x · Fast path ready</small>
+              </div>
+              <div class="menu-right">Enter ↵</div>
+            </div>
+
+            <div class="menu-item">
+              <div>
+                Advanced Options
+                <small>Recovery, fallback, debug parameters</small>
+              </div>
+              <div class="menu-right">→</div>
+            </div>
+
+            <div class="menu-item">
+              <div>
+                Memory Test
+                <small>Quick diagnostics before boot</small>
+              </div>
+              <div class="menu-right">F5</div>
+            </div>
+
+            <div class="menu-item">
+              <div>
+                Settings
+                <small>Theme, timeout, modules, mouse input</small>
+              </div>
+              <div class="menu-right">⚙</div>
+            </div>
+
+            <div class="status-row">
+              <div class="status-box">
+                <span>Filesystem</span>
+                <strong>FAT32 / EXT4 modules</strong>
+              </div>
+              <div class="status-box">
+                <span>Graphics</span>
+                <strong>Framebuffer UI enabled</strong>
+              </div>
+              <div class="status-box">
+                <span>Engine</span>
+                <strong>Stage 2 loaded successfully</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <h2>Built to feel modern,<br />without feeling fake.</h2>
+      </div>
+      <p>
+        The goal isn’t flashy nonsense. It’s a serious bootloader with a more polished shell:
+        smoother selection, better theme control, cleaner structure, and enough visual personality to stand out.
+      </p>
+    </div>
+
+    <div class="grid-3">
+      <article class="card reveal">
+        <div class="chip">01 · Faster feel</div>
+        <h3>Sharper interaction</h3>
+        <p>
+          Smooth menu movement, responsive keyboard handling, and optional subtle transitions make the boot menu feel more intentional.
+        </p>
+      </article>
+
+      <article class="card reveal">
+        <div class="chip">02 · Cleaner setup</div>
+        <h3>Simple config syntax</h3>
+        <p>
+          Boot entries are easier to read and edit, so your config stops looking like legacy ritual text.
+        </p>
+      </article>
+
+      <article class="card reveal">
+        <div class="chip">03 · Theming that matters</div>
+        <h3>Fox Theme system</h3>
+        <p>
+          Dark gradient base, orange accents, and modular visuals that can be extended later without rewriting the whole bootloader.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <h2>Three-stage design,<br />kept understandable.</h2>
+      </div>
+      <p>
+        BootloaderFox is meant to be ambitious, but not messy. Each layer has a clear purpose so you can grow the project without turning it into spaghetti.
+      </p>
+    </div>
+
+    <div class="grid-3">
+      <article class="card reveal">
+        <div class="chip">Stage 1</div>
+        <h3>Minimal loader</h3>
+        <p>
+          Assembly/C boot path that initializes the machine, prepares memory, and hands off cleanly into the main environment.
+        </p>
+      </article>
+
+      <article class="card reveal">
+        <div class="chip">Stage 2</div>
+        <h3>Core boot engine</h3>
+        <p>
+          Filesystem access, config parsing, Linux kernel loading, and module handling live here so the project stays structured.
+        </p>
+      </article>
+
+      <article class="card reveal">
+        <div class="chip">Stage 3</div>
+        <h3>UI layer</h3>
+        <p>
+          Framebuffer graphics, keyboard and optional mouse support, plus light animation hooks for a better on-screen experience.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <h2>Why it feels different</h2>
+      </div>
+      <p>
+        It isn’t only about colors. The project is shaped around usability, visual clarity, and a modular future instead of carrying every old assumption forever.
+      </p>
+    </div>
+
+    <div class="grid-4">
+      <article class="card reveal">
+        <h3>Modular files</h3>
+        <p>Separate modules like <strong>fil
